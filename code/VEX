@@ -1,0 +1,40 @@
+Build Flow Wrangle VEX:
+vector n = normalize(@N);
+
+// tangent from normal map
+vector t = normalize(v@Nmap);
+t = t - n * dot(t, n);
+t = normalize(t);
+
+// curvature gradient (discrete)
+vector g = {0,0,0};
+int pts[] = neighbours(0, @ptnum);
+
+foreach (int p; pts)
+{
+    float dk = point(0, "curvature", p) - f@curvature;
+    vector dir = point(0, "P", p) - @P;
+    g += normalize(dir) * dk;
+}
+
+// project to surface
+g = g - n * dot(g, n);
+g = normalize(g);
+
+// blend curvature + normal detail
+float steer = chf("curvature_steer"); // 0–1
+vector flow = normalize(lerp(t, g, steer));
+
+// make it curl-like (prevents sinks)
+flow = normalize(cross(n, flow));
+
+// OUTPUT
+v@flow = flow;
+
+Applying motion Wrangle VEX:
+
+float w = f@wear;
+float strength = chf("strength");
+
+// move points tangentially
+@P += v@flow * w * strength;
